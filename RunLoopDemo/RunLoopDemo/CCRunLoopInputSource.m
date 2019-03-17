@@ -20,7 +20,7 @@
 
 /* Run Loop Source Context的三个回调方法 */
 
-// 当把当前的Run Loop Source添加到Run Loop中时，会回调这个方法。主线程管理该Input source，所以使用performSelectorOnMainThread通知主线程。主线程和当前线程的通信使用CCRunLoopContext对象来完成。
+// 当把当前的Run Loop Source添加到Run Loop中时，会回调这个方法。主线程管理该Input source，所以使用performSelectorOnMainThread通知主线程。主线程和当前线程的通信使用CCRunLoopContext对象来完成。 (Note: 输入源只有一个客户端，那就是主线程，所以将 RunLoopContext 传递过去，方便 delegate 和输入源通信。)
 void runLoopSourceScheduleRoutine (void *info, CFRunLoopRef runLoopRef, CFStringRef mode)
 {
     CCRunLoopInputSource *runLoopInputSource = (__bridge CCRunLoopInputSource *)info;
@@ -60,6 +60,7 @@ void runLoopSourceCancelRoutine (void *info, CFRunLoopRef runLoopRef, CFStringRe
             &runLoopSourceCancelRoutine,
             &runLoopSourcePerformRoutine};
         
+        // 该类型必须附加到 run loop 中，将 RunLoopSource 对象本身作为上下文信息传递，以便回调程序具有指向该对象的指针。
         _runLoopSource = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &context);
         
         _commands = [NSMutableArray array];
@@ -67,6 +68,9 @@ void runLoopSourceCancelRoutine (void *info, CFRunLoopRef runLoopRef, CFStringRe
     return self;
 }
 
+/**
+ 一旦调用此方法，就会调用 `RunLoopSourceScheduleRoutine` 回调函数。 一旦输入源被添加到 run loop 中，线程就可以运行其 run loop 来等待它。
+ */
 - (void)addToCurrentRunLoop
 {
     CFRunLoopRef runLoop = CFRunLoopGetCurrent();
@@ -104,6 +108,9 @@ void runLoopSourceCancelRoutine (void *info, CFRunLoopRef runLoopRef, CFStringRe
     _testPrintString = string;
 }
 
+/*
+ 在将数据移交给输入源之后，客户端必须向源发信号并唤醒其 run loop 。 信号源使 run loop 知道源已准备好进行处理。 并且因为线程可能在信号发生时处于睡眠状态，所以手动唤醒 run loop 。 如果不这样做可能会导致处理输入源的延迟。
+ */
 - (void)fireAllCommandsOnRunLoop:(CFRunLoopRef)runLoop
 {
     NSLog(@"Current Thread: %@", [NSThread currentThread]);

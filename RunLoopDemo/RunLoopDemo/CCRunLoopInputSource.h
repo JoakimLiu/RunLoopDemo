@@ -14,6 +14,9 @@
 
 @end
 
+/**
+ 管理命令缓冲区并使用该缓冲区从其他线程接收消息
+ */
 @interface CCRunLoopInputSource : NSObject
 
 
@@ -35,7 +38,7 @@
 
 @end
 
-// 容器类，用来保存和传递数据
+// 容器类，用于传递 RunLoopSource 对象和对应用程序主线程的 run loop 引用
 @interface CCRunLoopContext : NSObject
 
 @property (nonatomic, readonly) CFRunLoopRef runLoop;
